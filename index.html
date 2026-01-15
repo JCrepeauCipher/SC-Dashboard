@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SC Activity Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons (lighter than FontAwesome) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .card { background: white; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); transition: all 0.2s; }
+        .card:hover { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Custom Scrollbar for table */
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 p-2 rounded-lg">
+                        <i data-lucide="bar-chart-2" class="text-white h-6 w-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">SC Activity</h1>
+                        <p class="text-xs text-gray-500">Solution Consulting Analytics</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="resetFilters()" class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                        <i data-lucide="rotate-ccw" class="h-4 w-4"></i> Reset Filters
+                    </button>
+                    <div class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                        <span id="record-count">0</span> records
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Sidebar / Filter Panel -->
+        <aside class="w-64 bg-white border-r border-gray-200 overflow-y-auto flex-shrink-0 z-0 hidden md:block">
+            <div class="p-6 space-y-6">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Date Range</label>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400 w-8">From</span>
+                            <input type="date" id="filter-start-date" onchange="updateDashboard()" class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400 w-8">To</span>
+                            <input type="date" id="filter-end-date" onchange="updateDashboard()" class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Team Member</label>
+                    <select id="filter-assigned" onchange="updateDashboard()" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5">
+                        <option value="All">All Members</option>
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Event Type</label>
+                    <select id="filter-type" onchange="updateDashboard()" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5">
+                        <option value="All">All Types</option>
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Solution</label>
+                    <select id="filter-solution" onchange="updateDashboard()" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5">
+                        <option value="All">All Solutions</option>
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+                
+                <div class="pt-4 border-t border-gray-200">
+                    <h3 class="text-sm font-medium text-gray-900 mb-2">Insights</h3>
+                    <p class="text-xs text-gray-500 leading-relaxed">
+                        The majority of activity is focused on <strong>Meeting Prep</strong> and <strong>Demo Support</strong>. 
+                        <br><br>
+                        <strong>Kenny Iannuzzi</strong> has the highest volume of recorded events in this period.
+                    </p>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- Dashboard Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-6 custom-scrollbar">
+            
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 fade-in">
+                <div class="card p-5 border-l-4 border-blue-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase">Total Activities</p>
+                            <h3 class="text-2xl font-bold text-gray-900 mt-1" id="kpi-total">0</h3>
+                        </div>
+                        <div class="p-2 bg-blue-50 rounded-lg">
+                            <i data-lucide="activity" class="text-blue-600 h-5 w-5"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5 border-l-4 border-green-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase">Unique Opps</p>
+                            <h3 class="text-2xl font-bold text-gray-900 mt-1" id="kpi-opps">0</h3>
+                        </div>
+                        <div class="p-2 bg-green-50 rounded-lg">
+                            <i data-lucide="target" class="text-green-600 h-5 w-5"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5 border-l-4 border-purple-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase">Top Activity</p>
+                            <h3 class="text-lg font-bold text-gray-900 mt-1 truncate w-32" id="kpi-top-type">-</h3>
+                        </div>
+                        <div class="p-2 bg-purple-50 rounded-lg">
+                            <i data-lucide="calendar" class="text-purple-600 h-5 w-5"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-5 border-l-4 border-orange-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase">Top Solution</p>
+                            <h3 class="text-lg font-bold text-gray-900 mt-1 truncate w-32" id="kpi-top-sol">-</h3>
+                        </div>
+                        <div class="p-2 bg-orange-50 rounded-lg">
+                            <i data-lucide="zap" class="text-orange-600 h-5 w-5"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 1 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 fade-in" style="animation-delay: 0.1s;">
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Activity by Team Member</h3>
+                    <div class="relative h-64">
+                        <canvas id="chart-assigned"></canvas>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Event Type Distribution</h3>
+                    <div class="relative h-64 flex justify-center">
+                        <canvas id="chart-type"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 2 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 fade-in" style="animation-delay: 0.2s;">
+                <div class="card p-6 lg:col-span-2">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Weekly Activity Volume</h3>
+                    <div class="relative h-64">
+                        <canvas id="chart-timeline"></canvas>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Solutions</h3>
+                    <div class="relative h-64">
+                        <canvas id="chart-solutions"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="card overflow-hidden fade-in" style="animation-delay: 0.3s;">
+                <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Detailed Activity Log</h3>
+                    <input type="text" id="table-search" onkeyup="filterTable()" placeholder="Search opportunities..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 w-64">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Date</th>
+                                <th scope="col" class="px-6 py-3">Assigned</th>
+                                <th scope="col" class="px-6 py-3">Opportunity</th>
+                                <th scope="col" class="px-6 py-3">Type</th>
+                                <th scope="col" class="px-6 py-3">Solutions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Rows populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-4 border-t border-gray-200 bg-gray-50 text-center">
+                    <p class="text-xs text-gray-400">Showing filtered results</p>
+                </div>
+            </div>
+
+            <div class="h-12"></div> <!-- Spacer -->
+
+        </main>
+    </div>
+
+    <script>
+        // --- DATA ---
+        // Embedded JSON data from Python processing
+        const rawData = [{"Opportunity": "Renewal: Carilion Clinic: System: Rounding (2026)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-01", "Cipher Solution(s)": "Patient Rounding"}, {"Opportunity": "Inova Health: System Upsell: SSR & Flowsheets", "Assigned": "Jason Crepeau", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-02", "Cipher Solution(s)": "None"}, {"Opportunity": "Inova Health: System Upsell: SSR & Flowsheets", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-02", "Cipher Solution(s)": "Post-Discharge Communications; Self-Service Rounding"}, {"Opportunity": "ChristianaCare Health System - Self Service Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-02", "Cipher Solution(s)": "Post-Discharge Communications"}, {"Opportunity": "Froedert - Outreach, Rounding, SSR::Froedtert South", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-06", "Cipher Solution(s)": "Post-Discharge Communications"}, {"Opportunity": "Carilion Health System - ED Post Discharge Outreach", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-07", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "Renewal: Christiana Care Health System: Rounding (2028)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-07", "Cipher Solution(s)": "Secure Data Sharing; Staff Rounding"}, {"Opportunity": "Sarasota Memorial - MA&A::Sarasota Memorial Hospital", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-08", "Cipher Solution(s)": "None"}, {"Opportunity": "Sarasota Memorial - MA&A::Sarasota Memorial Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-08", "Cipher Solution(s)": "RxLink"}, {"Opportunity": "MD Anderson Cancer Center-RFP-PD Outreach::The University of Texas M.D. Anderson Cancer Center", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-08", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "CipherRounds::Crouse Hospital Health System", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-09", "Cipher Solution(s)": "Self-Service Rounding"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-10-09", "Cipher Solution(s)": "None"}, {"Opportunity": "Renewal: NewYork-Presbyterian Healthcare System: Post Discharge Outreach (2027)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-14", "Cipher Solution(s)": "None"}, {"Opportunity": "NewYork-Presbyterian: Post-Visit Outreach", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-14", "Cipher Solution(s)": "Post-Discharge Communications"}, {"Opportunity": "Renewal: NewYork-Presbyterian Healthcare System: Post Discharge Outreach (2027)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-16", "Cipher Solution(s)": "None"}, {"Opportunity": "Henry Mayo: Post Discharge Outreach", "Assigned": "Jason Crepeau", "Event Sub-Type": "RFP/RFI Support", "Event Location": "Phone/Web", "Date": "2025-10-23", "Cipher Solution(s)": "None"}, {"Opportunity": "Henry Mayo: Post Discharge Outreach", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "Phone/Web", "Date": "2025-10-23", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-23", "Cipher Solution(s)": "Location Rounding; Patient Rounding; Self-Service Rounding"}, {"Opportunity": "SDS::Middlesex Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-27", "Cipher Solution(s)": "Secure Data Sharing"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-27", "Cipher Solution(s)": "Location Rounding; Patient Rounding"}, {"Opportunity": "University of Missouri Hospital and Clinics: Rounding Expansion", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-27", "Cipher Solution(s)": "Patient Rounding"}, {"Opportunity": "AdventHealth - Patient Rounding & SSR", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-28", "Cipher Solution(s)": "None"}, {"Opportunity": "AdventHealth - PD Outreach", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-29", "Cipher Solution(s)": "CipherOutreach; RxLink"}, {"Opportunity": "Auto-Renewal: University of Missouri Hospital and Clinics: Rounding (2027)", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-29", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-30", "Cipher Solution(s)": "Patient Rounding; Staff Rounding"}, {"Opportunity": "Southcoast: Self-service rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-30", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO::Southcoast Health System", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-30", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO::Southcoast Health System", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-31", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "", "Assigned": "Jason Crepeau", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-10-31", "Cipher Solution(s)": "None"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-31", "Cipher Solution(s)": "Patient Rounding; Staff Rounding"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-06", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-10", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "Wellstar: TEAM Proms outreach::WellStar Health System", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-14", "Cipher Solution(s)": "PROMs Communications"}, {"Opportunity": "PDO DRG::The University of Texas M.D. Anderson Cancer Center", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-14", "Cipher Solution(s)": "Secure Data Sharing"}, {"Opportunity": "Texas Childrens - PD Outreach::Texas Children's Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-17", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications; PROMs Communications"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-18", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "UIH - Post-visit Ambulatory Outreach::University of Illinois Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-18", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "", "Assigned": "Jason Crepeau", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-11-18", "Cipher Solution(s)": "None"}, {"Opportunity": "Wellstar: TEAM Proms outreach::WellStar Health System", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-20", "Cipher Solution(s)": "PROMs Communications"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-20", "Cipher Solution(s)": "Patient Rounding"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-21", "Cipher Solution(s)": "Patient Rounding"}, {"Opportunity": "Renewal: Texas Childrens: System Rounding (2026)", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-21", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-21", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-24", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-25", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "Licking Memorial Hospital - Post Discharge Outreach & Staff/Location & Flowsheets", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-25", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-26", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-12-01", "Cipher Solution(s)": "None"}, {"Opportunity": "Post DIscharge Outreach::Community Regional Medical Center", "Assigned": "Jason Crepeau", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-12-08", "Cipher Solution(s)": "None"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-12-10", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-10", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-10", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "Kaiser Permanente: National Contract for Remaining Markets", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-11", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Discovery Support", "Event Location": "Phone/Web", "Date": "2025-12-12", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-12-15", "Cipher Solution(s)": "Post-Discharge Communications"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-16", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "OneBrooklyn - Self Service Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-16", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "Phone/Web", "Date": "2025-12-16", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-12-16", "Cipher Solution(s)": "None"}, {"Opportunity": "UF - Rounding::University of Florida Health", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-22", "Cipher Solution(s)": "Location Rounding; Patient Rounding"}, {"Opportunity": "Sentara Healthcare - Northern VA Medical Center - Rounding Suite", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-12-22", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding"}, {"Opportunity": "Sentara Healthcare - Northern VA Medical Center - Rounding Suite", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-23", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding"}, {"Opportunity": "ChristianaCare Health System - Self Service Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-30", "Cipher Solution(s)": "Staff Rounding"}];
+
+        // --- CHART INSTANCES ---
+        let chartAssigned = null;
+        let chartType = null;
+        let chartTimeline = null;
+        let chartSolutions = null;
+
+        // --- INIT ---
+        window.onload = function() {
+            lucide.createIcons();
+            populateFilters();
+            updateDashboard();
+        };
+
+        // --- FILTER POPULATION ---
+        function populateFilters() {
+            const assignedSet = new Set();
+            const typeSet = new Set();
+            const solutionSet = new Set();
+
+            rawData.forEach(row => {
+                if (row.Assigned) assignedSet.add(row.Assigned);
+                if (row["Event Sub-Type"] && row["Event Sub-Type"] !== 'Unknown') typeSet.add(row["Event Sub-Type"]);
+                
+                const sols = row["Cipher Solution(s)"].split(';');
+                sols.forEach(s => {
+                    const cleanS = s.trim();
+                    if(cleanS && cleanS !== 'None') solutionSet.add(cleanS);
+                });
+            });
+
+            populateSelect('filter-assigned', Array.from(assignedSet).sort());
+            populateSelect('filter-type', Array.from(typeSet).sort());
+            populateSelect('filter-solution', Array.from(solutionSet).sort());
+        }
+
+        function populateSelect(id, items) {
+            const select = document.getElementById(id);
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item;
+                option.text = item;
+                select.appendChild(option);
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-assigned').value = 'All';
+            document.getElementById('filter-type').value = 'All';
+            document.getElementById('filter-solution').value = 'All';
+            document.getElementById('filter-start-date').value = '';
+            document.getElementById('filter-end-date').value = '';
+            updateDashboard();
+        }
+
+        // --- MAIN UPDATE LOGIC ---
+        function updateDashboard() {
+            // 1. Filter Data
+            const assignedFilter = document.getElementById('filter-assigned').value;
+            const typeFilter = document.getElementById('filter-type').value;
+            const solutionFilter = document.getElementById('filter-solution').value;
+            const startDate = document.getElementById('filter-start-date').value;
+            const endDate = document.getElementById('filter-end-date').value;
+
+            const filteredData = rawData.filter(row => {
+                const matchAssigned = assignedFilter === 'All' || row.Assigned === assignedFilter;
+                const matchType = typeFilter === 'All' || row["Event Sub-Type"] === typeFilter;
+                const matchSolution = solutionFilter === 'All' || row["Cipher Solution(s)"].includes(solutionFilter);
+                
+                let matchDate = true;
+                if (startDate && row.Date < startDate) matchDate = false;
+                if (endDate && row.Date > endDate) matchDate = false;
+
+                return matchAssigned && matchType && matchSolution && matchDate;
+            });
+
+            // 2. Update KPIs
+            document.getElementById('record-count').innerText = filteredData.length;
+            document.getElementById('kpi-total').innerText = filteredData.length;
+            
+            const uniqueOpps = new Set(filteredData.map(r => r.Opportunity).filter(o => o)).size;
+            document.getElementById('kpi-opps').innerText = uniqueOpps;
+
+            // Calc Top Activity
+            const typeCounts = {};
+            filteredData.forEach(r => {
+                const t = r["Event Sub-Type"];
+                if (t && t !== 'Unknown') typeCounts[t] = (typeCounts[t] || 0) + 1;
+            });
+            const topType = Object.entries(typeCounts).sort((a,b) => b[1] - a[1])[0];
+            document.getElementById('kpi-top-type').innerText = topType ? topType[0] : '-';
+
+            // Calc Top Solution
+            const solCounts = {};
+            filteredData.forEach(r => {
+                const sols = r["Cipher Solution(s)"].split(';');
+                sols.forEach(s => {
+                    const cleanS = s.trim();
+                    if(cleanS && cleanS !== 'None') solCounts[cleanS] = (solCounts[cleanS] || 0) + 1;
+                });
+            });
+            const topSol = Object.entries(solCounts).sort((a,b) => b[1] - a[1])[0];
+            document.getElementById('kpi-top-sol').innerText = topSol ? topSol[0] : '-';
+
+
+            // 3. Update Charts
+            renderCharts(filteredData, solCounts);
+
+            // 4. Update Table
+            renderTable(filteredData);
+        }
+
+        function renderCharts(data, globalSolCounts) {
+            // -- Assigned Bar --
+            const assignCounts = {};
+            data.forEach(r => { if(r.Assigned) assignCounts[r.Assigned] = (assignCounts[r.Assigned] || 0) + 1; });
+            const assignLabels = Object.keys(assignCounts);
+            const assignValues = Object.values(assignCounts);
+
+            updateChart('chart-assigned', 'bar', assignLabels, assignValues, 'Activities', ['#3b82f6', '#10b981', '#8b5cf6']);
+
+            // -- Type Doughnut --
+            const typeCounts = {};
+            data.forEach(r => { if(r["Event Sub-Type"] && r["Event Sub-Type"] !== 'Unknown') typeCounts[r["Event Sub-Type"]] = (typeCounts[r["Event Sub-Type"]] || 0) + 1; });
+            const typeLabels = Object.keys(typeCounts);
+            const typeValues = Object.values(typeCounts);
+            
+            updateChart('chart-type', 'doughnut', typeLabels, typeValues, 'Events', 
+                ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1']
+            );
+
+            // -- Timeline Line --
+            // Group by Week? Let's do simple date sort first
+            const dateCounts = {};
+            data.forEach(r => { 
+                if(!r.Date) return;
+                // Simple week bucketing could be done here, but let's stick to days for granular view or sort keys
+                dateCounts[r.Date] = (dateCounts[r.Date] || 0) + 1; 
+            });
+            const sortedDates = Object.keys(dateCounts).sort();
+            const dateValues = sortedDates.map(d => dateCounts[d]);
+
+            updateChart('chart-timeline', 'line', sortedDates, dateValues, 'Activity Volume', '#10b981');
+
+            // -- Solutions Bar --
+            // Use the counts calculated in KPI step
+            const sortedSols = Object.entries(globalSolCounts).sort((a,b) => b[1] - a[1]).slice(0, 8); // Top 8
+            updateChart('chart-solutions', 'bar', sortedSols.map(s=>s[0]), sortedSols.map(s=>s[1]), 'Mentions', '#f59e0b');
+        }
+
+        function updateChart(canvasId, type, labels, data, label, colors) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            // Destroy existing
+            if (canvasId === 'chart-assigned' && chartAssigned) chartAssigned.destroy();
+            if (canvasId === 'chart-type' && chartType) chartType.destroy();
+            if (canvasId === 'chart-timeline' && chartTimeline) chartTimeline.destroy();
+            if (canvasId === 'chart-solutions' && chartSolutions) chartSolutions.destroy();
+
+            const config = {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: Array.isArray(colors) ? colors : colors,
+                        borderColor: Array.isArray(colors) ? '#ffffff' : colors,
+                        borderWidth: 1,
+                        tension: 0.3,
+                        fill: type === 'line' ? {target: 'origin', below: 'rgba(16, 185, 129, 0.1)'} : false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: type === 'doughnut', position: 'bottom' }
+                    },
+                    scales: type !== 'doughnut' ? {
+                        y: { beginAtZero: true, grid: { display: true, drawBorder: false } },
+                        x: { grid: { display: false } }
+                    } : {}
+                }
+            };
+
+            const newChart = new Chart(ctx, config);
+
+            // Reassign global var
+            if (canvasId === 'chart-assigned') chartAssigned = newChart;
+            if (canvasId === 'chart-type') chartType = newChart;
+            if (canvasId === 'chart-timeline') chartTimeline = newChart;
+            if (canvasId === 'chart-solutions') chartSolutions = newChart;
+        }
+
+        // --- TABLE RENDER ---
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            // Sort by Date Descending
+            const sortedData = [...data].sort((a, b) => new Date(b.Date) - new Date(a.Date));
+
+            sortedData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "bg-white border-b hover:bg-gray-50 transition-colors";
+                
+                // Color code event types
+                let typeBadge = 'bg-gray-100 text-gray-800';
+                if(row["Event Sub-Type"] === 'Demo Support') typeBadge = 'bg-green-100 text-green-800';
+                if(row["Event Sub-Type"] === 'Meeting Prep') typeBadge = 'bg-blue-100 text-blue-800';
+                if(row["Event Sub-Type"] === 'Technical Support') typeBadge = 'bg-purple-100 text-purple-800';
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${row.Date}</td>
+                    <td class="px-6 py-4">${row.Assigned}</td>
+                    <td class="px-6 py-4 truncate max-w-xs" title="${row.Opportunity}">${row.Opportunity || '<span class="text-gray-300 italic">No Opp Name</span>'}</td>
+                    <td class="px-6 py-4"><span class="${typeBadge} text-xs font-medium px-2.5 py-0.5 rounded">${row["Event Sub-Type"]}</span></td>
+                    <td class="px-6 py-4 truncate max-w-xs" title="${row["Cipher Solution(s)"]}">${row["Cipher Solution(s)"].replace(/;/g, ', ') || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterTable() {
+            const input = document.getElementById('table-search');
+            const filter = input.value.toLowerCase();
+            const rows = document.getElementById('table-body').getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const oppCell = rows[i].getElementsByTagName('td')[2];
+                if (oppCell) {
+                    const txtValue = oppCell.textContent || oppCell.innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }       
+            }
+        }
+    </script>
+</body>
+</html>
