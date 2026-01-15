@@ -23,11 +23,15 @@
         .card:hover { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        /* Custom Scrollbar for table */
+        /* Custom Scrollbar */
         .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        
+        /* Chat Animations */
+        .chat-enter { animation: chatEnter 0.3s ease-out forwards; }
+        @keyframes chatEnter { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
@@ -58,7 +62,7 @@
     </header>
 
     <!-- Main Content -->
-    <div class="flex flex-1 overflow-hidden">
+    <div class="flex flex-1 overflow-hidden relative">
         
         <!-- Sidebar / Filter Panel -->
         <aside class="w-64 bg-white border-r border-gray-200 overflow-y-auto flex-shrink-0 z-0 hidden md:block">
@@ -87,6 +91,14 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Account Owner</label>
+                    <select id="filter-owner" onchange="updateDashboard()" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5">
+                        <option value="All">All Owners</option>
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Event Type</label>
                     <select id="filter-type" onchange="updateDashboard()" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5">
                         <option value="All">All Types</option>
@@ -105,9 +117,9 @@
                 <div class="pt-4 border-t border-gray-200">
                     <h3 class="text-sm font-medium text-gray-900 mb-2">Insights</h3>
                     <p class="text-xs text-gray-500 leading-relaxed">
-                        The majority of activity is focused on <strong>Meeting Prep</strong> and <strong>Demo Support</strong>. 
+                        Activity is currently focused on <strong>Meeting Prep</strong> and <strong>Demo Support</strong>. 
                         <br><br>
-                        <strong>Kenny Iannuzzi</strong> has the highest volume of recorded events in this period.
+                        <strong>Kenny Iannuzzi</strong> maintains the highest volume of recorded events in this period.
                     </p>
                 </div>
 
@@ -209,6 +221,7 @@
                             <tr>
                                 <th scope="col" class="px-6 py-3">Date</th>
                                 <th scope="col" class="px-6 py-3">Assigned</th>
+                                <th scope="col" class="px-6 py-3">Owner</th>
                                 <th scope="col" class="px-6 py-3">Opportunity</th>
                                 <th scope="col" class="px-6 py-3">Type</th>
                                 <th scope="col" class="px-6 py-3">Solutions</th>
@@ -225,14 +238,53 @@
             </div>
 
             <div class="h-12"></div> <!-- Spacer -->
-
+            
         </main>
+
+        <!-- CHAT WIDGET -->
+        <div id="chat-widget" class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+            <!-- Chat Window -->
+            <div id="chat-window" class="hidden bg-white w-80 h-96 rounded-lg shadow-xl flex flex-col border border-gray-200 mb-4 chat-enter origin-bottom-right">
+                <!-- Header -->
+                <div class="bg-blue-600 p-4 rounded-t-lg flex justify-between items-center text-white">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="bot" class="w-4 h-4"></i>
+                        <h3 class="font-semibold text-sm">Data Assistant</h3>
+                    </div>
+                    <button onclick="toggleChat()" class="hover:bg-blue-700 rounded p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+                <!-- Messages -->
+                <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50">
+                    <div class="bg-blue-100 text-blue-900 p-3 rounded-lg rounded-tl-none self-start text-sm max-w-[85%]">
+                        Hi! I can help you analyze this data. Try asking:
+                        <ul class="list-disc ml-4 mt-1 space-y-1">
+                            <li>How many activities?</li>
+                            <li>Who is most active?</li>
+                            <li>Top solutions?</li>
+                            <li>Who owns the most accounts?</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Input -->
+                <div class="p-3 border-t border-gray-200 bg-white rounded-b-lg">
+                    <div class="flex gap-2">
+                        <input type="text" id="chat-input" onkeypress="handleEnter(event)" placeholder="Ask a question..." class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                        <button onclick="sendMessage()" class="bg-blue-600 text-white rounded-lg px-3 py-2 hover:bg-blue-700 transition-colors"><i data-lucide="send" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Toggle Button -->
+            <button onclick="toggleChat()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-transform hover:scale-105">
+                <i data-lucide="message-square" class="w-6 h-6"></i>
+            </button>
+        </div>
     </div>
 
     <script>
         // --- DATA ---
-        // Embedded JSON data from Python processing
-        const rawData = [{"Opportunity": "Renewal: Carilion Clinic: System: Rounding (2026)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-01", "Cipher Solution(s)": "Patient Rounding"}, {"Opportunity": "Inova Health: System Upsell: SSR & Flowsheets", "Assigned": "Jason Crepeau", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-02", "Cipher Solution(s)": "None"}, {"Opportunity": "Inova Health: System Upsell: SSR & Flowsheets", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-02", "Cipher Solution(s)": "Post-Discharge Communications; Self-Service Rounding"}, {"Opportunity": "ChristianaCare Health System - Self Service Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-02", "Cipher Solution(s)": "Post-Discharge Communications"}, {"Opportunity": "Froedert - Outreach, Rounding, SSR::Froedtert South", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-06", "Cipher Solution(s)": "Post-Discharge Communications"}, {"Opportunity": "Carilion Health System - ED Post Discharge Outreach", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-07", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "Renewal: Christiana Care Health System: Rounding (2028)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-07", "Cipher Solution(s)": "Secure Data Sharing; Staff Rounding"}, {"Opportunity": "Sarasota Memorial - MA&A::Sarasota Memorial Hospital", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-08", "Cipher Solution(s)": "None"}, {"Opportunity": "Sarasota Memorial - MA&A::Sarasota Memorial Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-08", "Cipher Solution(s)": "RxLink"}, {"Opportunity": "MD Anderson Cancer Center-RFP-PD Outreach::The University of Texas M.D. Anderson Cancer Center", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-08", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "CipherRounds::Crouse Hospital Health System", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-09", "Cipher Solution(s)": "Self-Service Rounding"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-10-09", "Cipher Solution(s)": "None"}, {"Opportunity": "Renewal: NewYork-Presbyterian Healthcare System: Post Discharge Outreach (2027)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-14", "Cipher Solution(s)": "None"}, {"Opportunity": "NewYork-Presbyterian: Post-Visit Outreach", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-14", "Cipher Solution(s)": "Post-Discharge Communications"}, {"Opportunity": "Renewal: NewYork-Presbyterian Healthcare System: Post Discharge Outreach (2027)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-16", "Cipher Solution(s)": "None"}, {"Opportunity": "Henry Mayo: Post Discharge Outreach", "Assigned": "Jason Crepeau", "Event Sub-Type": "RFP/RFI Support", "Event Location": "Phone/Web", "Date": "2025-10-23", "Cipher Solution(s)": "None"}, {"Opportunity": "Henry Mayo: Post Discharge Outreach", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "Phone/Web", "Date": "2025-10-23", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-23", "Cipher Solution(s)": "Location Rounding; Patient Rounding; Self-Service Rounding"}, {"Opportunity": "SDS::Middlesex Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-27", "Cipher Solution(s)": "Secure Data Sharing"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-27", "Cipher Solution(s)": "Location Rounding; Patient Rounding"}, {"Opportunity": "University of Missouri Hospital and Clinics: Rounding Expansion", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-27", "Cipher Solution(s)": "Patient Rounding"}, {"Opportunity": "AdventHealth - Patient Rounding & SSR", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-28", "Cipher Solution(s)": "None"}, {"Opportunity": "AdventHealth - PD Outreach", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-29", "Cipher Solution(s)": "CipherOutreach; RxLink"}, {"Opportunity": "Auto-Renewal: University of Missouri Hospital and Clinics: Rounding (2027)", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-29", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-30", "Cipher Solution(s)": "Patient Rounding; Staff Rounding"}, {"Opportunity": "Southcoast: Self-service rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-30", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO::Southcoast Health System", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-30", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO::Southcoast Health System", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-31", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "", "Assigned": "Jason Crepeau", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-10-31", "Cipher Solution(s)": "None"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-31", "Cipher Solution(s)": "Patient Rounding; Staff Rounding"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-06", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-10", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "Wellstar: TEAM Proms outreach::WellStar Health System", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-14", "Cipher Solution(s)": "PROMs Communications"}, {"Opportunity": "PDO DRG::The University of Texas M.D. Anderson Cancer Center", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-14", "Cipher Solution(s)": "Secure Data Sharing"}, {"Opportunity": "Texas Childrens - PD Outreach::Texas Children's Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-17", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications; PROMs Communications"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-18", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "UIH - Post-visit Ambulatory Outreach::University of Illinois Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-18", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "", "Assigned": "Jason Crepeau", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-11-18", "Cipher Solution(s)": "None"}, {"Opportunity": "Wellstar: TEAM Proms outreach::WellStar Health System", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-20", "Cipher Solution(s)": "PROMs Communications"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-20", "Cipher Solution(s)": "Patient Rounding"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-21", "Cipher Solution(s)": "Patient Rounding"}, {"Opportunity": "Renewal: Texas Childrens: System Rounding (2026)", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-21", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-21", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-24", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-25", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "Licking Memorial Hospital - Post Discharge Outreach & Staff/Location & Flowsheets", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-25", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-26", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-12-01", "Cipher Solution(s)": "None"}, {"Opportunity": "Post DIscharge Outreach::Community Regional Medical Center", "Assigned": "Jason Crepeau", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-12-08", "Cipher Solution(s)": "None"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-12-10", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-10", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-10", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "Kaiser Permanente: National Contract for Remaining Markets", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-11", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Discovery Support", "Event Location": "Phone/Web", "Date": "2025-12-12", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-12-15", "Cipher Solution(s)": "Post-Discharge Communications"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-16", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications"}, {"Opportunity": "OneBrooklyn - Self Service Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-16", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "Phone/Web", "Date": "2025-12-16", "Cipher Solution(s)": "CipherOutreach"}, {"Opportunity": "", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-12-16", "Cipher Solution(s)": "None"}, {"Opportunity": "UF - Rounding::University of Florida Health", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-22", "Cipher Solution(s)": "Location Rounding; Patient Rounding"}, {"Opportunity": "Sentara Healthcare - Northern VA Medical Center - Rounding Suite", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-12-22", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding"}, {"Opportunity": "Sentara Healthcare - Northern VA Medical Center - Rounding Suite", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-23", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding"}, {"Opportunity": "ChristianaCare Health System - Self Service Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-30", "Cipher Solution(s)": "Staff Rounding"}];
+        // New embedded JSON data from report1768491789202.csv
+        const rawData = [{"Opportunity": "Renewal: Carilion Clinic: System: Rounding (2026)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-01", "Cipher Solution(s)": "Patient Rounding", "Account Owner": "Kendra Sheehan"}, {"Opportunity": "Inova Health: System Upsell: SSR & Flowsheets", "Assigned": "Jason Crepeau", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-02", "Cipher Solution(s)": "None", "Account Owner": "Jen Thomas"}, {"Opportunity": "Inova Health: System Upsell: SSR & Flowsheets", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-02", "Cipher Solution(s)": "Post-Discharge Communications; Self-Service Rounding", "Account Owner": "Jen Thomas"}, {"Opportunity": "ChristianaCare Health System - Self Service Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-02", "Cipher Solution(s)": "Post-Discharge Communications", "Account Owner": "Kendra Sheehan"}, {"Opportunity": "Froedert - Outreach, Rounding, SSR::Froedtert South", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-06", "Cipher Solution(s)": "Post-Discharge Communications", "Account Owner": "Matt Dyer"}, {"Opportunity": "Carilion Health System - ED Post Discharge Outreach", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-07", "Cipher Solution(s)": "CipherOutreach", "Account Owner": "Kendra Sheehan"}, {"Opportunity": "Renewal: Christiana Care Health System: Rounding (2028)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-07", "Cipher Solution(s)": "Secure Data Sharing; Staff Rounding", "Account Owner": "Kendra Sheehan"}, {"Opportunity": "Sarasota Memorial - MA&A::Sarasota Memorial Hospital", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-08", "Cipher Solution(s)": "None", "Account Owner": "Jen Thomas"}, {"Opportunity": "Sarasota Memorial - MA&A::Sarasota Memorial Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-08", "Cipher Solution(s)": "RxLink", "Account Owner": "Jen Thomas"}, {"Opportunity": "MD Anderson Cancer Center-RFP-PD Outreach::The University of Texas M.D. Anderson Cancer Center", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-08", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "CipherRounds::Crouse Hospital Health System", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-09", "Cipher Solution(s)": "Self-Service Rounding", "Account Owner": "Bob Fressola"}, {"Opportunity": "Unknown Opportunity", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-10-09", "Cipher Solution(s)": "None", "Account Owner": "Matt Dyer"}, {"Opportunity": "Renewal: NewYork-Presbyterian Healthcare System: Post Discharge Outreach (2027)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-14", "Cipher Solution(s)": "None", "Account Owner": "Bob Fressola"}, {"Opportunity": "NewYork-Presbyterian: Post-Visit Outreach", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-14", "Cipher Solution(s)": "Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "Renewal: NewYork-Presbyterian Healthcare System: Post Discharge Outreach (2027)", "Assigned": "Jason Crepeau", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-16", "Cipher Solution(s)": "None", "Account Owner": "Bob Fressola"}, {"Opportunity": "Henry Mayo: Post Discharge Outreach", "Assigned": "Jason Crepeau", "Event Sub-Type": "RFP/RFI Support", "Event Location": "Phone/Web", "Date": "2025-10-23", "Cipher Solution(s)": "None", "Account Owner": "Jason Yuhas"}, {"Opportunity": "Henry Mayo: Post Discharge Outreach", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "Phone/Web", "Date": "2025-10-23", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Jason Yuhas"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-23", "Cipher Solution(s)": "Location Rounding; Patient Rounding; Self-Service Rounding", "Account Owner": "Chris Peak"}, {"Opportunity": "SDS::Middlesex Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-10-27", "Cipher Solution(s)": "Secure Data Sharing", "Account Owner": "Bob Fressola"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-27", "Cipher Solution(s)": "Location Rounding; Patient Rounding", "Account Owner": "Chris Peak"}, {"Opportunity": "University of Missouri Hospital and Clinics: Rounding Expansion", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-27", "Cipher Solution(s)": "Patient Rounding", "Account Owner": "Kendra Sheehan"}, {"Opportunity": "AdventHealth - Patient Rounding & SSR", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-28", "Cipher Solution(s)": "None", "Account Owner": "Joe Grosso"}, {"Opportunity": "AdventHealth - PD Outreach", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-29", "Cipher Solution(s)": "CipherOutreach; RxLink", "Account Owner": "Joe Grosso"}, {"Opportunity": "Auto-Renewal: University of Missouri Hospital and Clinics: Rounding (2027)", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-29", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Kendra Sheehan"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-30", "Cipher Solution(s)": "Patient Rounding; Staff Rounding", "Account Owner": "Chris Peak"}, {"Opportunity": "Southcoast: Self-service rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-30", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "PDO::Southcoast Health System", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-10-30", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "PDO::Southcoast Health System", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-31", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "Unknown Opportunity", "Assigned": "Jason Crepeau", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-10-31", "Cipher Solution(s)": "None", "Account Owner": "Jen Thomas"}, {"Opportunity": "Rounding:: Children's Hospital Los Angeles::Childrens Hospital Los Angeles", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-10-31", "Cipher Solution(s)": "Patient Rounding; Staff Rounding", "Account Owner": "Chris Peak"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-06", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-10", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "Wellstar: TEAM Proms outreach::WellStar Health System", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-14", "Cipher Solution(s)": "PROMs Communications", "Account Owner": "Chris Peak"}, {"Opportunity": "PDO DRG::The University of Texas M.D. Anderson Cancer Center", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-14", "Cipher Solution(s)": "Secure Data Sharing", "Account Owner": "Bob Fressola"}, {"Opportunity": "Texas Childrens - PD Outreach::Texas Children's Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-17", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications; PROMs Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-18", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "UIH - Post-visit Ambulatory Outreach::University of Illinois Hospital", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-18", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Matt Dyer"}, {"Opportunity": "Unknown Opportunity", "Assigned": "Jason Crepeau", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-11-18", "Cipher Solution(s)": "None", "Account Owner": "Bob Fressola"}, {"Opportunity": "Wellstar: TEAM Proms outreach::WellStar Health System", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-20", "Cipher Solution(s)": "PROMs Communications", "Account Owner": "Chris Peak"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-20", "Cipher Solution(s)": "Patient Rounding", "Account Owner": "Jason Yuhas"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-21", "Cipher Solution(s)": "Patient Rounding", "Account Owner": "Jason Yuhas"}, {"Opportunity": "Renewal: Texas Childrens: System Rounding (2026)", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-21", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding", "Account Owner": "Bob Fressola"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-21", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-24", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-11-25", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "Licking Memorial Hospital - Post Discharge Outreach & Staff/Location & Flowsheets", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-25", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Kendra Sheehan"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-11-26", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Bob Fressola"}, {"Opportunity": "Unknown Opportunity", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-12-01", "Cipher Solution(s)": "None", "Account Owner": "Bob Fressola"}, {"Opportunity": "Post DIscharge Outreach::Community Regional Medical Center", "Assigned": "Jason Crepeau", "Event Sub-Type": "Technical Support", "Event Location": "Phone/Web", "Date": "2025-12-08", "Cipher Solution(s)": "None", "Account Owner": "Chris Peak"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Jason Crepeau", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-12-10", "Cipher Solution(s)": "CipherOutreach", "Account Owner": "Jason Yuhas"}, {"Opportunity": "Meritus Medical Center: Patient Rounding", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-10", "Cipher Solution(s)": "CipherOutreach", "Account Owner": "Jason Yuhas"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-10", "Cipher Solution(s)": "CipherOutreach", "Account Owner": "Bob Fressola"}, {"Opportunity": "Kaiser Permanente: National Contract for Remaining Markets", "Assigned": "Jason Crepeau", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-11", "Cipher Solution(s)": "CipherOutreach", "Account Owner": "Spenser Halvorsen"}, {"Opportunity": "Unknown Opportunity", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Discovery Support", "Event Location": "Phone/Web", "Date": "2025-12-12", "Cipher Solution(s)": "CipherOutreach", "Account Owner": "Ian Lomas"}, {"Opportunity": "Unknown Opportunity", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-12-15", "Cipher Solution(s)": "Post-Discharge Communications", "Account Owner": "Ian Lomas"}, {"Opportunity": "Unknown Opportunity", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-16", "Cipher Solution(s)": "CipherOutreach; Post-Discharge Communications", "Account Owner": "Ian Lomas"}, {"Opportunity": "OneBrooklyn - Self Service Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-16", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding", "Account Owner": "Kendra Sheehan"}, {"Opportunity": "PDO Expansion::Hartford HealthCare", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "Phone/Web", "Date": "2025-12-16", "Cipher Solution(s)": "CipherOutreach", "Account Owner": "Bob Fressola"}, {"Opportunity": "Unknown Opportunity", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Unknown", "Event Location": "", "Date": "2025-12-16", "Cipher Solution(s)": "None", "Account Owner": "Ian Lomas"}, {"Opportunity": "UF - Rounding::University of Florida Health", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-22", "Cipher Solution(s)": "Location Rounding; Patient Rounding", "Account Owner": "Joe Grosso"}, {"Opportunity": "Sentara Healthcare - Northern VA Medical Center - Rounding Suite", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Meeting Prep", "Event Location": "Phone/Web", "Date": "2025-12-22", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding", "Account Owner": "Kendra Sheehan"}, {"Opportunity": "Sentara Healthcare - Northern VA Medical Center - Rounding Suite", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-23", "Cipher Solution(s)": "Patient Rounding; Self-Service Rounding", "Account Owner": "Kendra Sheehan"}, {"Opportunity": "ChristianaCare Health System - Self Service Rounding", "Assigned": "Kenny Iannuzzi", "Event Sub-Type": "Demo Support", "Event Location": "Phone/Web", "Date": "2025-12-30", "Cipher Solution(s)": "Staff Rounding", "Account Owner": "Kendra Sheehan"}];
 
         // --- CHART INSTANCES ---
         let chartAssigned = null;
@@ -252,10 +304,12 @@
             const assignedSet = new Set();
             const typeSet = new Set();
             const solutionSet = new Set();
+            const ownerSet = new Set();
 
             rawData.forEach(row => {
                 if (row.Assigned) assignedSet.add(row.Assigned);
                 if (row["Event Sub-Type"] && row["Event Sub-Type"] !== 'Unknown') typeSet.add(row["Event Sub-Type"]);
+                if (row["Account Owner"] && row["Account Owner"] !== 'Unknown') ownerSet.add(row["Account Owner"]);
                 
                 const sols = row["Cipher Solution(s)"].split(';');
                 sols.forEach(s => {
@@ -267,6 +321,7 @@
             populateSelect('filter-assigned', Array.from(assignedSet).sort());
             populateSelect('filter-type', Array.from(typeSet).sort());
             populateSelect('filter-solution', Array.from(solutionSet).sort());
+            populateSelect('filter-owner', Array.from(ownerSet).sort());
         }
 
         function populateSelect(id, items) {
@@ -283,6 +338,7 @@
             document.getElementById('filter-assigned').value = 'All';
             document.getElementById('filter-type').value = 'All';
             document.getElementById('filter-solution').value = 'All';
+            document.getElementById('filter-owner').value = 'All';
             document.getElementById('filter-start-date').value = '';
             document.getElementById('filter-end-date').value = '';
             updateDashboard();
@@ -294,6 +350,7 @@
             const assignedFilter = document.getElementById('filter-assigned').value;
             const typeFilter = document.getElementById('filter-type').value;
             const solutionFilter = document.getElementById('filter-solution').value;
+            const ownerFilter = document.getElementById('filter-owner').value;
             const startDate = document.getElementById('filter-start-date').value;
             const endDate = document.getElementById('filter-end-date').value;
 
@@ -301,19 +358,20 @@
                 const matchAssigned = assignedFilter === 'All' || row.Assigned === assignedFilter;
                 const matchType = typeFilter === 'All' || row["Event Sub-Type"] === typeFilter;
                 const matchSolution = solutionFilter === 'All' || row["Cipher Solution(s)"].includes(solutionFilter);
+                const matchOwner = ownerFilter === 'All' || row["Account Owner"] === ownerFilter;
                 
                 let matchDate = true;
                 if (startDate && row.Date < startDate) matchDate = false;
                 if (endDate && row.Date > endDate) matchDate = false;
 
-                return matchAssigned && matchType && matchSolution && matchDate;
+                return matchAssigned && matchType && matchSolution && matchOwner && matchDate;
             });
 
             // 2. Update KPIs
             document.getElementById('record-count').innerText = filteredData.length;
             document.getElementById('kpi-total').innerText = filteredData.length;
             
-            const uniqueOpps = new Set(filteredData.map(r => r.Opportunity).filter(o => o)).size;
+            const uniqueOpps = new Set(filteredData.map(r => r.Opportunity).filter(o => o && o !== 'Unknown Opportunity')).size;
             document.getElementById('kpi-opps').innerText = uniqueOpps;
 
             // Calc Top Activity
@@ -365,11 +423,9 @@
             );
 
             // -- Timeline Line --
-            // Group by Week? Let's do simple date sort first
             const dateCounts = {};
             data.forEach(r => { 
                 if(!r.Date) return;
-                // Simple week bucketing could be done here, but let's stick to days for granular view or sort keys
                 dateCounts[r.Date] = (dateCounts[r.Date] || 0) + 1; 
             });
             const sortedDates = Object.keys(dateCounts).sort();
@@ -449,6 +505,7 @@
                 tr.innerHTML = `
                     <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${row.Date}</td>
                     <td class="px-6 py-4">${row.Assigned}</td>
+                    <td class="px-6 py-4 truncate max-w-[100px]" title="${row["Account Owner"]}">${row["Account Owner"]}</td>
                     <td class="px-6 py-4 truncate max-w-xs" title="${row.Opportunity}">${row.Opportunity || '<span class="text-gray-300 italic">No Opp Name</span>'}</td>
                     <td class="px-6 py-4"><span class="${typeBadge} text-xs font-medium px-2.5 py-0.5 rounded">${row["Event Sub-Type"]}</span></td>
                     <td class="px-6 py-4 truncate max-w-xs" title="${row["Cipher Solution(s)"]}">${row["Cipher Solution(s)"].replace(/;/g, ', ') || '-'}</td>
@@ -463,7 +520,7 @@
             const rows = document.getElementById('table-body').getElementsByTagName('tr');
 
             for (let i = 0; i < rows.length; i++) {
-                const oppCell = rows[i].getElementsByTagName('td')[2];
+                const oppCell = rows[i].getElementsByTagName('td')[3]; // Updated index for Opp Name
                 if (oppCell) {
                     const txtValue = oppCell.textContent || oppCell.innerText;
                     if (txtValue.toLowerCase().indexOf(filter) > -1) {
@@ -473,6 +530,102 @@
                     }
                 }       
             }
+        }
+
+        // --- CHATBOT LOGIC ---
+        function toggleChat() {
+            const win = document.getElementById('chat-window');
+            win.classList.toggle('hidden');
+            if (!win.classList.contains('hidden')) {
+                document.getElementById('chat-input').focus();
+            }
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            // Add User Message
+            addMessage(msg, 'user');
+            input.value = '';
+
+            // Simulate thinking delay
+            setTimeout(() => {
+                const response = generateBotResponse(msg);
+                addMessage(response, 'bot');
+            }, 500);
+        }
+
+        function addMessage(text, sender) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            const isBot = sender === 'bot';
+            
+            div.className = isBot 
+                ? "bg-white border border-gray-200 text-gray-800 p-3 rounded-lg rounded-tl-none self-start text-sm max-w-[85%] shadow-sm"
+                : "bg-blue-600 text-white p-3 rounded-lg rounded-tr-none self-end text-sm max-w-[85%] shadow-sm ml-auto";
+            
+            div.innerHTML = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function generateBotResponse(input) {
+            const lowerInput = input.toLowerCase();
+            
+            // Greetings
+            if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
+                return "Hello! I'm ready to analyze your data. Ask me about activities, team members, solutions, or account owners.";
+            }
+
+            // 1. Team / Assigned Queries
+            if (lowerInput.includes('who') && (lowerInput.includes('active') || lowerInput.includes('most'))) {
+                 const counts = {};
+                rawData.forEach(r => { if(r.Assigned) counts[r.Assigned] = (counts[r.Assigned] || 0) + 1; });
+                const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+                const top = sorted[0];
+                return `<b>${top[0]}</b> is the most active team member with <b>${top[1]}</b> activities recorded.`;
+            }
+            
+            // 2. Account Owner Queries
+            if (lowerInput.includes('owner') || lowerInput.includes('account')) {
+                const counts = {};
+                rawData.forEach(r => { if(r["Account Owner"] && r["Account Owner"] !== 'Unknown') counts[r["Account Owner"]] = (counts[r["Account Owner"]] || 0) + 1; });
+                const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+                const top = sorted[0];
+                
+                return `<b>${top[0]}</b> is the busiest Account Owner with <b>${top[1]}</b> activities associated with their accounts.`;
+            }
+
+            // 3. Solutions Queries
+            if (lowerInput.includes('solution') || lowerInput.includes('product')) {
+                const counts = {};
+                rawData.forEach(r => {
+                    const sols = r["Cipher Solution(s)"].split(';');
+                    sols.forEach(s => {
+                        const cln = s.trim();
+                        if(cln && cln !== 'None') counts[cln] = (counts[cln] || 0) + 1;
+                    });
+                });
+                const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+                const top3 = sorted.slice(0, 3).map(s => `<li>${s[0]} (${s[1]})</li>`).join('');
+                
+                return `The top discussed solutions are:<ul class='list-disc ml-4 mt-2 pl-2'>${top3}</ul>`;
+            }
+
+            // 4. Count/Total Queries
+            if (lowerInput.includes('how many') || lowerInput.includes('total') || lowerInput.includes('count')) {
+                const uniqueOpps = new Set(rawData.map(r => r.Opportunity)).size;
+                return `I found a total of <b>${rawData.length}</b> activities across <b>${uniqueOpps}</b> unique opportunities.`;
+            }
+
+            // Default
+            return "I'm not sure about that. Try asking 'Who is most active?', 'Total count?', or 'Top solutions'.";
         }
     </script>
 </body>
